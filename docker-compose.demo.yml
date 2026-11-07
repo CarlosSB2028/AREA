@@ -1,0 +1,117 @@
+# One-command local demo of AREA (backend + web client + sample data).
+#
+#   docker compose -f docker-compose.demo.yml up --build
+#
+# Then open http://localhost:3000 and log in with:
+#   demo@area.dev / DemoPassw0rd!
+#
+# Everything below uses throwaway values meant for a local demo only.
+# OAuth logins and real service connections (GitHub, Google, Slack...) need
+# your own OAuth app credentials: see the "Getting started" section of the README.
+
+name: area-demo
+
+x-backend-env: &backend-env
+  SPRING_PROFILES_ACTIVE: dev
+  SERVER_PORT: "8080"
+  DATABASE_URL: jdbc:postgresql://postgres:5432/area
+  DATABASE_USERNAME: area
+  DATABASE_PASSWORD: area-demo
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD: ""
+  REDIS_SSL: "false"
+  FRONTEND_URL: http://localhost:3000
+  NEXT_PUBLIC_APP_URL: http://localhost:3000
+  OAUTH_REDIRECT_BASE_URL: http://localhost:8080
+  GOOGLE_WEBHOOK_BASE_URL: http://localhost:8080
+  GOOGLE_CLOUD_PROJECT: area-demo
+  JWT_COOKIE_SECURE: "false"
+  # Demo-only secrets (never reuse them outside a local demo)
+  ADMIN_USERNAME: admin
+  ADMIN_PASSWORD: demo-admin-password-change-me
+  JWT_ACCESS_SECRET: YXJlYS1kZW1vLWp3dC1hY2Nlc3Mtc2VjcmV0LW5vdC1mb3ItcHJvZHVjdGlvbiEh
+  JWT_REFRESH_SECRET: YXJlYS1kZW1vLWp3dC1yZWZyZXNoLXNlY3JldC1ub3QtZm9yLXByb2R1Y3Rpb24h
+  OAUTH_STATE_SECRET: YXJlYS1kZW1vLW9hdXRoLXN0YXRlLXNlY3JldC1ub3QtZm9yLXByb2R1Y3Rpb24=
+  APP_ENCRYPTION_KEY: ZGVtby1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcy0wMDA=
+  # Placeholder OAuth apps: the UI works, real OAuth logins need your own credentials
+  GITHUB_CLIENT_ID: demo
+  GITHUB_CLIENT_SECRET: demo
+  GOOGLE_CLIENT_ID: demo
+  GOOGLE_CLIENT_SECRET: demo
+  DISCORD_CLIENT_ID: demo
+  DISCORD_CLIENT_SECRET: demo
+  DISCORD_BOT_TOKEN: demo
+  NOTION_CLIENT_ID: demo
+  NOTION_CLIENT_SECRET: demo
+  SLACK_CLIENT_ID: demo
+  SLACK_CLIENT_SECRET: demo
+  SPOTIFY_CLIENT_ID: demo
+  SPOTIFY_CLIENT_SECRET: demo
+  # Emails are disabled in the demo
+  RESEND_ENABLED: "false"
+  RESEND_API_KEY: demo
+  SMTP_HOST: localhost
+  SMTP_USERNAME: demo
+  SMTP_PASSWORD: demo
+  EMAIL_FROM: noreply@area.local
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: area
+      POSTGRES_USER: area
+      POSTGRES_PASSWORD: area-demo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U area -d area"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./App/Back
+      dockerfile: Docker/Dockerfile
+    environment: *backend-env
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./App/Web
+      dockerfile: Docker/Dockerfile.web
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  # Creates the demo account and a few sample automations, then exits.
+  seed:
+    image: postgres:15-alpine
+    environment:
+      API_URL: http://backend:8080
+      PGHOST: postgres
+      PGUSER: area
+      PGPASSWORD: area-demo
+      PGDATABASE: area
+    volumes:
+      - ./demo/seed.sh:/seed.sh:ro
+    entrypoint: ["sh", "/seed.sh"]
+    depends_on:
+      backend:
+        condition: service_started
+    restart: "no"
