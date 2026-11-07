@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+    <!-- Ignore magic number checks in test files -->
+    <suppress checks="MagicNumber" files=".*Test\.java"/>
+
+    <!-- Allow star imports for common packages -->
+    <suppress checks="AvoidStarImport" files=".*" message=".*jakarta\.persistence\.\*"/>
+    <suppress checks="AvoidStarImport" files=".*" message=".*springframework\.web\.bind\.annotation\.\*"/>
+
+    <!-- Allow longer parameter lists in controllers (common in REST APIs) -->
+    <suppress checks="ParameterNumber" files=".*Controller\.java"/>
+
+    <!-- Allow inline conditionals in simple cases -->
+    <suppress checks="AvoidInlineConditionals" files=".*Controller\.java"/>
+
+    <!-- Allow non-final parameters in Spring controllers and services -->
+    <suppress checks="FinalParameters" files=".*Controller\.java"/>
+    <suppress checks="FinalParameters" files=".*Service\.java"/>
+    <suppress checks="FinalParameters" files=".*Config\.java"/>
+    <suppress checks="FinalParameters" files=".*Application\.java"/>
+
+    <!-- Allow utility class constructor check for Spring Boot main class -->
+    <suppress checks="HideUtilityClassConstructor" files=".*Application\.java"/>
+
+    <!-- Allow certain violations in DTOs and entities -->
+    <suppress checks="VisibilityModifier" files=".*(Dto|Entity|Request|Response)\.java"/>
+    <suppress checks="FinalParameters" files=".*(Dto|Entity|Request|Response)\.java"/>
+
+    <!-- Allow tabs in some files (if needed for formatting) -->
+    <suppress checks="FileTabCharacter" files=".*Application\.java"/>
+
+    <!-- More lenient import order for Spring projects -->
+    <suppress checks="ImportOrder" files=".*"/>
+
+    <!-- OAuth Notion Service constructor has many dependencies from Spring DI -->
+    <suppress checks="ParameterNumber"
+              files="OAuthNotionService\.java"
+              lines="77"/>
+
+    <!-- OAuth Google Service constructor has many dependencies from Spring DI -->
+    <suppress checks="ParameterNumber"
+              files="OAuthGoogleService\.java"
+              lines="76,79"/>
+
+    <!-- UserProfileData record-like class needs all profile fields -->
+    <suppress checks="ParameterNumber"
+              files="OAuthGoogleService\.java"
+              lines="515,574"/>
+
+    <!-- OAuth Github Service constructor has many dependencies from Spring DI -->
+    <suppress checks="ParameterNumber"
+              files="OAuthGithubService\.java"
+              lines="65"/>
+
+    <!-- OAuth Slack Service constructor has many dependencies from Spring DI -->
+    <suppress checks="ParameterNumber"
+              files="OAuthSlackService\.java"
+              lines="58"/>
+
+    <!-- OAuth Spotify Service authorization URL is long due to OAuth parameters -->
+    <suppress checks="LineLength"
+              files="OAuthSpotifyService\.java"
+              lines="48"/>
+
+    <!-- OAuth Spotify Service constructor has many dependencies from Spring DI -->
+    <suppress checks="ParameterNumber"
+              files="OAuthSpotifyService\.java"
+              lines="64"/>
+
+    <!-- OAuth Discord Service constructor has many dependencies from Spring DI -->
+    <suppress checks="ParameterNumber"
+              files="OAuthDiscordService\.java"
+              lines="62"/>
+
+    <!-- OAuth base Service has many dependencies from Spring DI -->
+    <suppress checks="ParameterNumber"
+              files="OAuthService\.java"
+              lines="30"/>
+
+    <!-- Allow test methods to start with uppercase (JUnit convention) -->
+    <suppress checks="MethodName" files=".*Test\.java"/>
+
+    <!-- Allow star imports in test files (common for readability) -->
+    <suppress checks="AvoidStarImport" files=".*Test\.java"/>
+
+    <!-- Allow longer lines in test files -->
+    <suppress checks="LineLength" files=".*Test\.java"/>
+
+    <!-- Allow non-final parameters in test methods -->
+    <suppress checks="FinalParameters" files=".*Test\.java"/>
+
+    <!-- Allow hidden fields in test classes (common for setup methods) -->
+    <suppress checks="HiddenField" files=".*Test\.java"/>
+
+    <!-- Allow inline conditionals in test files -->
+    <suppress checks="AvoidInlineConditionals" files=".*Test\.java"/>
+
+    <!-- Allow operator wrapping issues in test files -->
+    <suppress checks="OperatorWrap" files=".*Test\.java"/>
+
+    <!-- Allow unused imports in test files (sometimes needed for setup) -->
+    <suppress checks="UnusedImports" files=".*Test\.java"/>
+
+    <!-- Allow duplicate imports in test files -->
+    <suppress checks="RedundantImport" files=".*Test\.java"/>
+</suppressions>

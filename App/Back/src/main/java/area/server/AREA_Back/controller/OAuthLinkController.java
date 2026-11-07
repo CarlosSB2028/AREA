@@ -1,0 +1,144 @@
+package area.server.AREA_Back.controller;
+
+import area.server.AREA_Back.dto.OAuthLinkErrorResponse;
+import area.server.AREA_Back.dto.ServiceConnectionStatus;
+import area.server.AREA_Back.entity.User;
+import area.server.AREA_Back.entity.UserOAuthIdentity;
+import area.server.AREA_Back.service.Auth.AuthService;
+import area.server.AREA_Back.service.Auth.OAuthDiscordService;
+import area.server.AREA_Back.service.Auth.OAuthGithubService;
+import area.server.AREA_Back.service.Auth.OAuthGoogleService;
+import area.server.AREA_Back.service.Auth.OAuthNotionService;
+import area.server.AREA_Back.service.Auth.OAuthSlackService;
+import area.server.AREA_Back.service.Auth.OAuthSpotifyService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/oauth-link")
+@RequiredArgsConstructor
+@Slf4j
+@Tag(name = "OAuth Account Linking", description = "API for linking OAuth accounts to existing users")
+public class OAuthLinkController {
+
+    private final AuthService authService;
+    private final OAuthDiscordService oauthDiscordService;
+    private final OAuthGithubService oauthGithubService;
+    private final OAuthGoogleService oauthGoogleService;
+    private final OAuthNotionService oauthNotionService;
+    private final OAuthSlackService oauthSlackService;
+    private final OAuthSpotifyService oauthSpotifyService;
+
+    private static final int HTTP_UNAUTHORIZED = 401;
+    private static final int HTTP_NOT_FOUND = 404;
+    private static final int HTTP_CONFLICT = 409;
+    private static final int HTTP_BAD_REQUEST = 400;
+    private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
+
+    @PostMapping("/{provider}/exchange")
+    @Operation(summary = "Link OAuth account to current user without changing session")
+    public ResponseEntity<?> linkOAuthAccount(
+            @PathVariable String provider,
+            @RequestBody Map<String, String> requestBody,
+            HttpServletRequest request) {
+
+        try {
+            User currentUser = authService.getCurrentUserEntity(request);
+            if (currentUser == null) {
+                return ResponseEntity.status(HTTP_UNAUTHORIZED).build();
+            }
+
+            String authorizationCode = requestBody.get("code");
+            if (authorizationCode == null || authorizationCode.trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            UserOAuthIdentity linkedIdentity;
+            switch (provider.toLowerCase()) {
+                case "discord":
+                    linkedIdentity = oauthDiscordService.linkToExistingUser(currentUser, authorizationCode);
+                    break;
+                case "github":
+                    linkedIdentity = oauthGithubService.linkToExistingUser(currentUser, authorizationCode);
+                    break;
+                case "google":
+                    linkedIdentity = oauthGoogleService.linkToExistingUser(currentUser, authorizationCode);
+                    break;
+                case "notion":
+                    linkedIdentity = oauthNotionService.linkToExistingUser(currentUser, authorizationCode);
+                    break;
+                case "slack":
+                    linkedIdentity = oauthSlackService.linkToExistingUser(currentUser, authorizationCode);
+                    break;
+                case "spotify":
+                    linkedIdentity = oauthSpotifyService.linkToExistingUser(currentUser, authorizationCode);
+                    break;
+                default:
+                    return ResponseEntity.status(HTTP_NOT_FOUND).build();
+            }
+
+            ServiceConnectionStatus status = new ServiceConnectionStatus();
+            status.setServiceKey(provider);
+            status.setServiceName(getServiceDisplayName(provider));
+            status.setIconUrl(getServiceIconUrl(provider));
+            status.setConnected(true);
+            status.setConnectionType("OAUTH");
+            status.setUserEmail(currentUser.getEmail());
+            status.setUserName(currentUser.getEmail());
+            status.setAvatarUrl(currentUser.getAvatarUrl());
+            status.setProviderUserId(linkedIdentity.getProviderUserId());
+
+            return ResponseEntity.ok(status);
+
+        } catch (RuntimeException e) {
+            log.error("Error linking OAuth account for provider: {}", provider, e);
+
+            String errorMessage = e.getMessage();
+            if (errorMessage.contains("already linked to another user")) {
+                return ResponseEntity.status(HTTP_CONFLICT)
+                    .body(OAuthLinkErrorResponse.accountAlreadyLinked(getServiceDisplayName(provider)));
+            } else if (errorMessage.contains("email is required")) {
+                return ResponseEntity.status(HTTP_BAD_REQUEST)
+                    .body(OAuthLinkErrorResponse.emailRequired(getServiceDisplayName(provider)));
+            } else {
+                return ResponseEntity.status(HTTP_INTERNAL_SERVER_ERROR)
+                    .body(OAuthLinkErrorResponse.internalError());
+            }
+        } catch (Exception e) {
+            log.error("Unexpected error linking OAuth account for provider: {}", provider, e);
+            return ResponseEntity.status(HTTP_INTERNAL_SERVER_ERROR)
+                .body(OAuthLinkErrorResponse.internalError());
+        }
+    }
+
+    private String getServiceDisplayName(String provider) {
+        return switch (provider.toLowerCase()) {
+            case "discord" -> "Discord";
+            case "github" -> "GitHub";
+            case "google" -> "Google";
+            case "notion" -> "Notion";
+            case "slack" -> "Slack";
+            case "spotify" -> "Spotify";
+            default -> provider;
+        };
+    }
+
+    private String getServiceIconUrl(String provider) {
+        return switch (provider.toLowerCase()) {
+            case "discord" -> "https://img.icons8.com/color/48/discord-logo.png";
+            case "github" -> "https://img.icons8.com/material-outlined/24/github.png";
+            case "google" -> "https://img.icons8.com/color/48/google-logo.png";
+            case "notion" -> "https://img.icons8.com/color/48/notion--v1.png";
+            case "slack" -> "https://img.icons8.com/color/48/slack-new.png";
+            case "spotify" -> "https://img.icons8.com/color/48/spotify.png";
+            default -> "/file.svg";
+        };
+    }
+}
