@@ -1,0 +1,4 @@
+[
+  { "id": "google", "name": "Google", "color": "#4285f4" },
+  { "id": "github", "name": "GitHub", "color": "#333" }
+]

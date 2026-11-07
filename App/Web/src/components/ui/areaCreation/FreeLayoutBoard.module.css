@@ -1,0 +1,382 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: #f8f9fa;
+  position: relative;
+}
+
+.toolbar {
+  padding: 16px;
+  background-color: white;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+  z-index: 10;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.board {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #f8f9fa;
+  background-image:
+    radial-gradient(circle, #dee2e6 1px, transparent 1px);
+  background-size: 20px 20px;
+  flex: 1;
+  overflow: hidden;
+  min-height: 600px;
+  cursor: grab;
+}
+
+.board.panning {
+  cursor: grabbing;
+}
+
+.transformWrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.transformComponent {
+  width: 100%;
+  height: 100%;
+}
+
+.boardInner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  background-color: transparent;
+  pointer-events: none;
+}
+
+.boardContent {
+  position: relative;
+  pointer-events: auto;
+  min-width: 10000px;
+  min-height: 10000px;
+}
+
+.connectionsOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.connections {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  z-index: 1;
+}
+
+.connections circle,
+.connections g[style*="cursor"] {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.connections .connection-group {
+  animation: connectionAppear 0.5s ease-out;
+}
+
+@keyframes connectionAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.connections g:hover path {
+  stroke-width: 4 !important;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)) !important;
+}
+
+.connections g:hover circle {
+  transform: scale(1.2) !important;
+  fill: #FA5252 !important;
+}
+
+.connections g:hover text {
+  font-size: 16px !important;
+}
+
+.connections .connection-label {
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+@keyframes connectionRemove {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+.connections .removing {
+  animation: connectionRemove 0.3s ease-in forwards;
+}
+
+.removeButton {
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.removeButtonText {
+  cursor: pointer;
+  user-select: none;
+  pointer-events: all;
+}
+
+.serviceWrapper {
+  position: absolute;
+  transition: none;
+  z-index: 10;
+  transform-origin: center;
+  user-select: none;
+}
+
+.panMode .serviceWrapper {
+  cursor: grab !important;
+  pointer-events: auto;
+}
+
+.panMode.panning .serviceWrapper {
+  cursor: grabbing !important;
+  pointer-events: none;
+}
+
+.serviceWrapper:hover {
+  transform: scale(1.02);
+  z-index: 4;
+}
+
+.serviceWrapper.dragging {
+  z-index: 6;
+  transform: scale(1.05);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  transition: none;
+}
+
+.serviceWrapper.linking {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.serviceWrapper.linking:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(77, 171, 247, 0.3);
+}
+
+.serviceWrapper.linkingSource {
+  border: 3px solid #4DABF7;
+  border-radius: 12px;
+  background-color: rgba(77, 171, 247, 0.1);
+  box-shadow: 0 0 20px rgba(77, 171, 247, 0.4);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 20px rgba(77, 171, 247, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(77, 171, 247, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(77, 171, 247, 0.4);
+  }
+}
+
+.linkingModeActive {
+  background-color: rgba(77, 171, 247, 0.05);
+}
+
+.linkingModeActive .serviceWrapper {
+  border: 2px dashed rgba(77, 171, 247, 0.3);
+}
+
+.linkingModeActive .serviceWrapper:hover {
+  border: 2px solid #4DABF7;
+  background-color: rgba(77, 171, 247, 0.1);
+}
+
+.serviceWrapper.selected {
+  transform: scale(1.05);
+  z-index: 10;
+  box-shadow: 0 0 0 3px #4dabf7;
+  border-radius: 8px;
+}
+
+.serviceWrapper.linkingMode {
+  cursor: pointer !important;
+}
+
+.serviceWrapper.linkingMode:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px #74c0fc;
+  border-radius: 8px;
+}
+
+.serviceWrapper.linkingMode::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 2px dashed #4dabf7;
+  border-radius: 8px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
+.serviceWrapper.dragging {
+  z-index: 100;
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.serviceWrapper.notConfigured {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  filter: grayscale(50%);
+}
+
+.serviceWrapper.notConfigured:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.serviceWrapper.notConfigured::after {
+  display: none !important;
+}
+
+.minimap {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 200px;
+  height: 150px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.minimapCanvas {
+  width: 100%;
+  height: 100%;
+}
+
+.minimapViewport {
+  position: absolute;
+  border: 2px solid #4dabf7;
+  background-color: rgba(77, 171, 247, 0.2);
+  cursor: move;
+  border-radius: 2px;
+}
+
+.zoomControls {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.zoomButton {
+  width: 40px;
+  height: 40px;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  font-size: 20px;
+  font-weight: bold;
+  color: #495057;
+}
+
+.zoomButton:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: scale(1.05);
+}
+
+.zoomButton:active {
+  transform: scale(0.95);
+}
+
+.zoomLevel {
+  width: 40px;
+  height: 30px;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.panHint {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.panHint:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}

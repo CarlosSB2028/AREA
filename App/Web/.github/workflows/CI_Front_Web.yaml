@@ -1,0 +1,471 @@
+name: AREA_FRONT_WEB CI
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  install:
+    name: Install Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}
+      deps-cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Generate cache key
+        id: cache-key
+        run: |
+          echo "key=deps-${{ runner.os }}-${{ env.NODE_VERSION }}-${{ hashFiles('yarn.lock', 'package.json') }}" >> $GITHUB_OUTPUT
+
+      - name: Cache node_modules and Yarn cache
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/yarn
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ env.NODE_VERSION }}-${{ hashFiles('package.json') }}
+            deps-${{ runner.os }}-${{ env.NODE_VERSION }}-
+            deps-${{ runner.os }}-
+
+      - name: Cache Cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            cypress-${{ runner.os }}-
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Install Cypress binary (if not cached)
+        run: npx cypress install
+
+      - name: Verify installation
+        run: |
+          echo "✅ Dependencies installed successfully"
+          echo "Node modules size: $(du -sh node_modules | cut -f1)"
+          yarn --version
+
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/yarn
+          key: ${{ needs.install.outputs.deps-cache-key }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ env.NODE_VERSION }}-
+
+      - name: Run ESLint
+        run: yarn lint
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    needs: [install, lint]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/yarn
+          key: ${{ needs.install.outputs.deps-cache-key }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ env.NODE_VERSION }}-
+
+      - name: Run TypeScript type check
+        run: yarn tsc --noEmit
+
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    needs: [install, lint]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/yarn
+          key: ${{ needs.install.outputs.deps-cache-key }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ env.NODE_VERSION }}-
+
+      - name: Check if unit tests exist
+        id: check-unit-tests
+        run: |
+          if [ -d "__tests__" ] || [ -d "src/__tests__" ] || find . -name "*.test.*" -o -name "*.spec.*" | grep -v cypress | grep -q .; then
+            echo "tests-exist=true" >> $GITHUB_OUTPUT
+            echo "✅ Unit tests found, proceeding with Jest execution"
+          else
+            echo "tests-exist=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No unit tests found"
+          fi
+
+      - name: Run Jest unit tests
+        if: steps.check-unit-tests.outputs.tests-exist == 'true'
+        run: yarn test --coverage --watchAll=false
+
+      - name: Upload coverage reports
+        if: steps.check-unit-tests.outputs.tests-exist == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+      - name: Skip unit tests
+        if: steps.check-unit-tests.outputs.tests-exist == 'false'
+        run: echo "No unit tests to run, skipping Jest execution"
+
+  test-e2e:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    needs: [install, lint]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/yarn
+          key: ${{ needs.install.outputs.deps-cache-key }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ env.NODE_VERSION }}-
+
+      - name: Cache Cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            cypress-${{ runner.os }}-
+
+      - name: Install Cypress binary
+        run: npx cypress install
+
+      - name: Verify Cypress installation
+        run: npx cypress verify
+
+      - name: Check if e2e tests exist
+        id: check-e2e-tests
+        run: |
+          if [ -d "cypress" ] || find . -name "*.cy.*" -o -name "cypress.config.*" | grep -q .; then
+            echo "tests-exist=true" >> $GITHUB_OUTPUT
+            echo "✅ E2E tests found, proceeding with Cypress execution"
+          else
+            echo "tests-exist=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No E2E tests found"
+          fi
+
+      - name: Run Cypress E2E tests with dev server
+        if: steps.check-e2e-tests.outputs.tests-exist == 'true'
+        run: yarn test:e2e:ci
+        env:
+          CI: true
+          NEXT_PUBLIC_USE_MOCK_DATA: true
+          NEXT_PUBLIC_API_URL: http://localhost:3000
+
+      - name: Upload Cypress screenshots
+        if: failure() && steps.check-e2e-tests.outputs.tests-exist == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots/
+          retention-days: 7
+
+      - name: Upload Cypress videos
+        if: always() && steps.check-e2e-tests.outputs.tests-exist == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: cypress/videos/
+          retention-days: 7
+
+      - name: Skip E2E tests
+        if: steps.check-e2e-tests.outputs.tests-exist == 'false'
+        run: echo "No E2E tests to run, skipping Cypress execution"
+
+  build:
+    name: Build Project
+    runs-on: ubuntu-latest
+    needs: [install, lint, type-check, test, test-e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/yarn
+          key: ${{ needs.install.outputs.deps-cache-key }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ env.NODE_VERSION }}-
+
+      - name: Build Next.js application
+        run: yarn build
+
+      - name: Verify build output
+        run: |
+          echo "Checking build output..."
+          ls -la .next/ || echo "❌ .next directory not found"
+          du -sh .next/ 2>/dev/null || echo "❌ Cannot check .next size"
+          find .next -type f -name "*.js" | head -5 || echo "❌ No JS files found in .next"
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: .next/
+          retention-days: 1
+
+  release:
+    name: Create Staging Release
+    runs-on: ubuntu-latest
+    needs: [install, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/yarn
+          key: ${{ needs.install.outputs.deps-cache-key }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ env.NODE_VERSION }}-${{ hashFiles('package.json') }}
+            deps-${{ runner.os }}-${{ env.NODE_VERSION }}-
+            deps-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Build application
+        run: |
+          yarn build
+          echo "Build completed successfully"
+
+      - name: Generate staging release version
+        id: version
+        run: |
+          TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          STAGING_VERSION="staging-${TIMESTAMP}-${SHORT_SHA}"
+          echo "version=${STAGING_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Generated staging version: ${STAGING_VERSION}"
+
+      - name: Create release archive
+        run: |
+          mkdir -p staging-release
+
+          cp -r .next staging-release/ 2>/dev/null || echo "No .next directory found"
+          cp -r public staging-release/ 2>/dev/null || echo "No public directory found"
+
+          cp package.json staging-release/
+          cp yarn.lock staging-release/
+          cp next.config.ts staging-release/ 2>/dev/null || cp next.config.js staging-release/ 2>/dev/null || echo "No next.config found"
+          cp tsconfig.json staging-release/ 2>/dev/null || echo "No tsconfig.json found"
+
+          cat > staging-release/DEPLOYMENT.md << EOF
+          ## 🚀 Staging Release Deployment Guide
+
+          ### Release Information
+          - **Version:** ${{ steps.version.outputs.version }}
+          - **Branch:** ${{ github.ref_name }}
+          - **Commit:** ${{ github.sha }}
+          - **Build Date:** $(date)
+
+          ### 📋 Prerequisites
+          - Node.js 20.x installed
+          - Yarn package manager
+          - Environment variables configured
+
+          ### 🏗️ Deployment Steps
+
+          1. **Extract the release archive:**
+             \`\`\`bash
+             tar -xzf staging-${{ steps.version.outputs.version }}.tar.gz
+             cd staging-release/
+             \`\`\`
+
+          2. **Install dependencies:**
+             \`\`\`bash
+             yarn install --frozen-lockfile
+             \`\`\`
+
+          3. **Configure environment:**
+             \`\`\`bash
+             cp .env.example .env.local  # If available
+             # Edit .env.local with your staging environment variables
+             \`\`\`
+
+          4. **Start the application:**
+             \`\`\`bash
+             yarn start  # Production server
+             # OR for development testing:
+             yarn dev
+             \`\`\`
+
+          ### 🔧 Required Environment Variables
+          - \`NEXT_PUBLIC_APP_URL\` - Your staging application URL
+          - Database connection variables (if applicable)
+          - API keys and secrets
+
+          ### ✅ Health Check
+          After deployment, verify the application is running:
+          - **Application:** http://your-staging-url/
+          - **API Health:** http://your-staging-url/api/health (if available)
+
+          ### 📁 Files Included
+          - Built Next.js application (.next/)
+          - Static assets (public/)
+          - Package configuration (package.json, yarn.lock)
+          - TypeScript configuration (tsconfig.json)
+          - Next.js configuration (next.config.ts)
+          - Deployment instructions (this file)
+
+          ### 🆘 Troubleshooting
+          - If the app doesn't start, check the console logs
+          - Verify all environment variables are set correctly
+          - Ensure Node.js version 20.x is being used
+          - Check that all dependencies installed successfully
+          EOF
+
+          # Create the release archive
+          tar -czf staging-${{ steps.version.outputs.version }}.tar.gz staging-release/
+          echo "Release archive created: staging-${{ steps.version.outputs.version }}.tar.gz"
+
+      - name: Create staging release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.version }}" \
+            --title "Staging Release ${{ steps.version.outputs.version }}" \
+            --notes "## 🚀 Staging Release
+
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          **Timestamp:** ${{ steps.version.outputs.version }}
+
+          This is an automated staging release created from branch **${{ github.ref_name }}**.
+
+          ### 📝 Changes
+          - **Latest Commit:** ${{ github.event.head_commit.message }}
+          - **Author:** ${{ github.event.head_commit.author.name }}
+          - **SHA:** ${{ github.sha }}
+
+          ### 📦 What's Included
+          This release contains a complete staging deployment package with:
+          - ✅ Built Next.js application (.next directory)
+          - ✅ Static assets and public files
+          - ✅ All configuration files (package.json, yarn.lock, etc.)
+          - ✅ TypeScript and Next.js configurations
+          - ✅ Complete deployment instructions (DEPLOYMENT.md)
+
+          ### 🏗️ Deployment
+          1. Download \`staging-${{ steps.version.outputs.version }}.tar.gz\`
+          2. Extract and follow DEPLOYMENT.md instructions
+          3. Configure your staging environment variables
+          4. Run \`yarn start\` to launch the application
+
+          ### 🔍 Testing
+          - All unit tests passed ✅
+          - All E2E tests passed ✅
+          - Build completed successfully ✅
+          - TypeScript compilation successful ✅
+          - ESLint checks passed ✅
+
+          ### 📋 Files
+          - **Archive:** \`staging-${{ steps.version.outputs.version }}.tar.gz\`
+          - **Size:** $(du -sh staging-${{ steps.version.outputs.version }}.tar.gz | cut -f1)
+          - **Contents:** Complete staging deployment package" \
+            --prerelease \
+            staging-${{ steps.version.outputs.version }}.tar.gz

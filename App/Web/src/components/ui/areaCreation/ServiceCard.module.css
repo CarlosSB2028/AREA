@@ -1,0 +1,74 @@
+.card{
+  position: relative;
+  overflow: visible;
+  padding: 14px 16px;
+  box-shadow: 0 6px 18px rgba(33, 37, 41, 0.06);
+  transition: transform .18s ease, box-shadow .18s ease;
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+}
+.card:hover{
+  transform: translateY(-6px);
+  box-shadow: 0 14px 40px rgba(33,37,41,0.08);
+}
+.leftStripe{
+  width: 6px;
+  background: linear-gradient(180deg,#7c3aed,#3b82f6);
+  border-radius: 4px;
+  margin-right: 12px;
+}
+.content{
+  flex: 1;
+}
+.header{
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.leading{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.index{
+  font-weight: 700;
+  color: #6b7280;
+  background: #fafafa;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  min-width: 26px;
+  text-align: center;
+}
+.logoWrap{
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(16,24,40,0.04);
+}
+.logo{
+  object-fit: contain;
+}
+.texts{
+  display: flex;
+  flex-direction: column;
+}
+.actions{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hintRow{
+  margin-top: 10px;
+}
+.hintLeft{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
