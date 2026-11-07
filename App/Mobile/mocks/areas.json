@@ -1,0 +1,362 @@
+{
+  "areas": [
+    {
+      "id": "1",
+      "name": "Gmail to Slack Notification",
+      "description": "Automatically send a Slack message when receiving an important email in Gmail",
+      "enabled": true,
+      "userId": "user-123",
+      "userEmail": "user@example.com",
+      "actions": [
+        {
+          "id": "action-1",
+          "actionDefinitionId": "gmail-new-email",
+          "name": "New Email Received",
+          "parameters": {
+            "label": "INBOX",
+            "from": "boss@company.com"
+          },
+          "activationConfig": {
+            "type": "webhook",
+            "webhook_url": "https://api.example.com/webhook/gmail",
+            "events": ["email.received"],
+            "secret_token": "secret-123"
+          }
+        }
+      ],
+      "reactions": [
+        {
+          "id": "reaction-1",
+          "actionDefinitionId": "slack-send-message",
+          "name": "Send Slack Message",
+          "parameters": {
+            "channel": "#notifications",
+            "message": "New email from boss"
+          },
+          "mapping": {
+            "subject": "{{action.email.subject}}",
+            "sender": "{{action.email.from}}"
+          },
+          "order": 1,
+          "continue_on_error": false
+        }
+      ],
+      "createdAt": "2025-10-01T10:00:00Z",
+      "updatedAt": "2025-10-13T08:30:00Z"
+    },
+    {
+      "id": "2",
+      "name": "GitHub to Discord",
+      "description": "Post Discord notification when new GitHub issues are created in my repositories",
+      "enabled": true,
+      "userId": "user-123",
+      "userEmail": "user@example.com",
+      "actions": [
+        {
+          "id": "action-2",
+          "actionDefinitionId": "github-new-issue",
+          "name": "New Issue Created",
+          "parameters": {
+            "repository": "myorg/myrepo"
+          },
+          "activationConfig": {
+            "type": "webhook",
+            "webhook_url": "https://api.example.com/webhook/github",
+            "events": ["issues.opened"],
+            "secret_token": "secret-456"
+          }
+        }
+      ],
+      "reactions": [
+        {
+          "id": "reaction-2",
+          "actionDefinitionId": "discord-send-message",
+          "name": "Send Discord Message",
+          "parameters": {
+            "channel": "dev-notifications",
+            "embed": true
+          },
+          "mapping": {
+            "title": "{{action.issue.title}}",
+            "url": "{{action.issue.html_url}}",
+            "author": "{{action.issue.user.login}}"
+          },
+          "order": 1,
+          "continue_on_error": false
+        }
+      ],
+      "createdAt": "2025-09-15T14:20:00Z",
+      "updatedAt": "2025-10-12T16:45:00Z"
+    },
+    {
+      "id": "3",
+      "name": "Weather Alert System",
+      "description": "Send email and SMS alerts when extreme weather is detected in my location",
+      "enabled": false,
+      "userId": "user-123",
+      "userEmail": "user@example.com",
+      "actions": [
+        {
+          "id": "action-3",
+          "actionDefinitionId": "weather-alert",
+          "name": "Weather Alert",
+          "parameters": {
+            "location": "New York",
+            "severity": "extreme"
+          },
+          "activationConfig": {
+            "type": "poll",
+            "poll_interval": 1800
+          }
+        }
+      ],
+      "reactions": [
+        {
+          "id": "reaction-3a",
+          "actionDefinitionId": "email-send",
+          "name": "Send Email Alert",
+          "parameters": {
+            "to": "user@example.com",
+            "subject": "Weather Alert"
+          },
+          "mapping": {
+            "condition": "{{action.weather.condition}}",
+            "temperature": "{{action.weather.temperature}}"
+          },
+          "condition": {
+            "operator": "and",
+            "conditions": [
+              {
+                "field": "severity",
+                "operator": "equals",
+                "value": "extreme"
+              }
+            ]
+          },
+          "order": 1,
+          "continue_on_error": true
+        },
+        {
+          "id": "reaction-3b",
+          "actionDefinitionId": "sms-send",
+          "name": "Send SMS Alert",
+          "parameters": {
+            "to": "+1234567890"
+          },
+          "mapping": {
+            "message": "Weather Alert: {{action.weather.condition}}"
+          },
+          "order": 2,
+          "continue_on_error": false
+        }
+      ],
+      "createdAt": "2025-08-20T09:15:00Z",
+      "updatedAt": "2025-10-10T11:20:00Z"
+    },
+    {
+      "id": "4",
+      "name": "Daily Standup Reminder",
+      "description": "Automated daily reminder sent to team via Slack every weekday morning",
+      "enabled": true,
+      "userId": "user-123",
+      "userEmail": "user@example.com",
+      "actions": [
+        {
+          "id": "action-4",
+          "actionDefinitionId": "schedule-trigger",
+          "name": "Daily Schedule",
+          "parameters": {
+            "timezone": "America/New_York"
+          },
+          "activationConfig": {
+            "type": "cron",
+            "cron_expression": "0 9 * * 1-5"
+          }
+        }
+      ],
+      "reactions": [
+        {
+          "id": "reaction-4",
+          "actionDefinitionId": "slack-send-message",
+          "name": "Send Standup Reminder",
+          "parameters": {
+            "channel": "#daily-standup",
+            "message": "Good morning team! Time for our daily standup 🌅"
+          },
+          "order": 1,
+          "continue_on_error": false
+        }
+      ],
+      "createdAt": "2025-07-05T12:00:00Z",
+      "updatedAt": "2025-10-13T09:00:00Z"
+    },
+    {
+      "id": "5",
+      "name": "Twitter to Database Archive",
+      "description": "Archive all my tweets to a PostgreSQL database for backup and analytics",
+      "enabled": true,
+      "userId": "user-123",
+      "userEmail": "user@example.com",
+      "actions": [
+        {
+          "id": "action-5",
+          "actionDefinitionId": "twitter-new-tweet",
+          "name": "New Tweet Posted",
+          "parameters": {
+            "username": "myhandle"
+          },
+          "activationConfig": {
+            "type": "webhook",
+            "webhook_url": "https://api.example.com/webhook/twitter",
+            "events": ["tweet.created"],
+            "secret_token": "secret-789"
+          }
+        }
+      ],
+      "reactions": [
+        {
+          "id": "reaction-5a",
+          "actionDefinitionId": "database-insert",
+          "name": "Insert to Database",
+          "parameters": {
+            "table": "tweets",
+            "database": "twitter_archive"
+          },
+          "mapping": {
+            "tweet_id": "{{action.tweet.id}}",
+            "content": "{{action.tweet.text}}",
+            "created_at": "{{action.tweet.created_at}}",
+            "likes": "{{action.tweet.favorite_count}}",
+            "retweets": "{{action.tweet.retweet_count}}"
+          },
+          "order": 1,
+          "continue_on_error": false
+        },
+        {
+          "id": "reaction-5b",
+          "actionDefinitionId": "analytics-track",
+          "name": "Track Analytics",
+          "parameters": {
+            "event": "tweet_archived"
+          },
+          "order": 2,
+          "continue_on_error": true
+        }
+      ],
+      "createdAt": "2025-06-12T15:30:00Z",
+      "updatedAt": "2025-10-11T14:15:00Z"
+    },
+    {
+      "id": "6",
+      "name": "Twitter to Database Archive",
+      "description": "Archive all my tweets to a PostgreSQL database for backup and analytics",
+      "enabled": true,
+      "userId": "user-123",
+      "userEmail": "user@example.com",
+      "actions": [
+        {
+          "id": "action-5",
+          "actionDefinitionId": "twitter-new-tweet",
+          "name": "New Tweet Posted",
+          "parameters": {
+            "username": "myhandle"
+          },
+          "activationConfig": {
+            "type": "webhook",
+            "webhook_url": "https://api.example.com/webhook/twitter",
+            "events": ["tweet.created"],
+            "secret_token": "secret-789"
+          }
+        }
+      ],
+      "reactions": [
+        {
+          "id": "reaction-5a",
+          "actionDefinitionId": "database-insert",
+          "name": "Insert to Database",
+          "parameters": {
+            "table": "tweets",
+            "database": "twitter_archive"
+          },
+          "mapping": {
+            "tweet_id": "{{action.tweet.id}}",
+            "content": "{{action.tweet.text}}",
+            "created_at": "{{action.tweet.created_at}}",
+            "likes": "{{action.tweet.favorite_count}}",
+            "retweets": "{{action.tweet.retweet_count}}"
+          },
+          "order": 1,
+          "continue_on_error": false
+        },
+        {
+          "id": "reaction-5b",
+          "actionDefinitionId": "analytics-track",
+          "name": "Track Analytics",
+          "parameters": {
+            "event": "tweet_archived"
+          },
+          "order": 2,
+          "continue_on_error": true
+        }
+      ],
+      "createdAt": "2025-06-12T15:30:00Z",
+      "updatedAt": "2025-10-11T14:15:00Z"
+    },
+    {
+      "id": "7",
+      "name": "Twitter to Database Archive",
+      "description": "Archive all my tweets to a PostgreSQL database for backup and analytics",
+      "enabled": true,
+      "userId": "user-123",
+      "userEmail": "user@example.com",
+      "actions": [
+        {
+          "id": "action-5",
+          "actionDefinitionId": "twitter-new-tweet",
+          "name": "New Tweet Posted",
+          "parameters": {
+            "username": "myhandle"
+          },
+          "activationConfig": {
+            "type": "webhook",
+            "webhook_url": "https://api.example.com/webhook/twitter",
+            "events": ["tweet.created"],
+            "secret_token": "secret-789"
+          }
+        }
+      ],
+      "reactions": [
+        {
+          "id": "reaction-5a",
+          "actionDefinitionId": "database-insert",
+          "name": "Insert to Database",
+          "parameters": {
+            "table": "tweets",
+            "database": "twitter_archive"
+          },
+          "mapping": {
+            "tweet_id": "{{action.tweet.id}}",
+            "content": "{{action.tweet.text}}",
+            "created_at": "{{action.tweet.created_at}}",
+            "likes": "{{action.tweet.favorite_count}}",
+            "retweets": "{{action.tweet.retweet_count}}"
+          },
+          "order": 1,
+          "continue_on_error": false
+        },
+        {
+          "id": "reaction-5b",
+          "actionDefinitionId": "analytics-track",
+          "name": "Track Analytics",
+          "parameters": {
+            "event": "tweet_archived"
+          },
+          "order": 2,
+          "continue_on_error": true
+        }
+      ],
+      "createdAt": "2025-06-12T15:30:00Z",
+      "updatedAt": "2025-10-11T14:15:00Z"
+    }
+  ]
+}
